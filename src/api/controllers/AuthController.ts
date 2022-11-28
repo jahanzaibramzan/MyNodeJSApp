@@ -1,13 +1,13 @@
 import { Request, Response } from 'express'
-import { getRespJData, isDefined } from '../helpers/Common'
-import { register } from '../models/Auth'
+import { getRespJData, isDefined, parseAuthToken } from '../helpers/Common'
+import { getMyToken, register, saveMyToken } from '../models/Auth'
 import { getUserDataWithEmail } from '../models/User'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
-import dotenv from 'dotenv'
 import { LoginResp } from '../interfaces'
 
-dotenv.config()
+const accessTokenKey = process.env.ACCESS_TOKEN_SECRET ?? ''
+const refreshTokenKey = process.env.REFRESH_TOKEN_SECRET ?? ''
 
 const loginUser = (req: Request, res: Response): void => {
   const { email, password } = req.body
@@ -65,12 +65,31 @@ const registerUser = (req: Request, res: Response): void => {
     })
 }
 
-const generateLoginResp = async (userId: string): Promise<LoginResp> => {
-  const accessTokenKey = process.env.ACCESS_TOKEN_SECRET ?? ''
-  const refreshTokenKey = process.env.REFRESH_TOKEN_SECRET ?? ''
+const generateAccessToken = (req: Request, res: Response): void => {
+  const { token } = req.body
+  const userData = parseAuthToken(req.headers.authorization) ?? {}
+  getMyToken(userData.userId, token).then((resp) => {
+    const result = isDefined(resp[0][0]) ? resp[0][0] : null
+    if (result == null) {
+      res.sendStatus(401)
+      return
+    }
+    jwt.verify(token, refreshTokenKey, (err: any, user: any) => {
+      if (isDefined(err)) { return res.sendStatus(403) }
+      const accessToken = jwt.sign({ userId: user.userId }, accessTokenKey, { expiresIn: '30m' })
+      res.status(200).json(getRespJData(true, '', { accessToken }))
+    })
+  }).catch(error => {
+    console.log(error)
+    res.status(400).json(getRespJData(false, 'something went wrong'))
+  })
+}
 
-  const accessToken = await jwt.sign({ userId }, accessTokenKey)
+const generateLoginResp = async (userId: string): Promise<LoginResp> => {
+  const accessToken = await jwt.sign({ userId }, accessTokenKey, { expiresIn: '5m' })
   const refreshToken = await jwt.sign({ userId }, refreshTokenKey)
+  await saveMyToken(userId, refreshToken)
+
   return {
     id: userId,
     access_token: accessToken,
@@ -78,4 +97,4 @@ const generateLoginResp = async (userId: string): Promise<LoginResp> => {
   }
 }
 
-export { loginUser, registerUser }
+export { loginUser, registerUser, generateAccessToken }

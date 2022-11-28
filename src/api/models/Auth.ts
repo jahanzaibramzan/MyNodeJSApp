@@ -17,4 +17,14 @@ const register = async (props: User): Promise<any> => {
   return await DBConfig.execute(query)
 }
 
-export { register }
+const saveMyToken = async (userId: string, token: string): Promise<any> => {
+  const query = `INSERT INTO auth_tokens (user_id, token) VALUES ('${userId}', '${token}')`
+  return await DBConfig.execute(query)
+}
+
+const getMyToken = async (userId: string, token: string): Promise<any> => {
+  const query = `SELECT * FROM auth_tokens WHERE user_id = '${userId}' AND token = '${token}'`
+  return await DBConfig.execute(query)
+}
+
+export { register, saveMyToken, getMyToken }
