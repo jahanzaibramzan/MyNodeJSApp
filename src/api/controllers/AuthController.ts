@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import { getRespJData, isDefined, parseAuthToken } from '../helpers/Common'
-import { getMyToken, register, saveMyToken } from '../models/Auth'
+import { deleteMyToken, getMyToken, register, saveMyToken } from '../models/Auth'
 import { getUserDataWithEmail } from '../models/User'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
@@ -85,6 +85,17 @@ const generateAccessToken = (req: Request, res: Response): void => {
   })
 }
 
+const logoutUser = (req: Request, res: Response): void => {
+  const { token } = req.body
+  const userData = parseAuthToken(req.headers.authorization) ?? {}
+  deleteMyToken(userData.userId, token).then((resp) => {
+    res.status(204).json(getRespJData(true, 'Logout Successfully'))
+  }).catch(error => {
+    console.log(error)
+    res.status(400).json(getRespJData(false, 'something went wrong'))
+  })
+}
+
 const generateLoginResp = async (userId: string): Promise<LoginResp> => {
   const accessToken = await jwt.sign({ userId }, accessTokenKey, { expiresIn: '5m' })
   const refreshToken = await jwt.sign({ userId }, refreshTokenKey)
@@ -97,4 +108,4 @@ const generateLoginResp = async (userId: string): Promise<LoginResp> => {
   }
 }
 
-export { loginUser, registerUser, generateAccessToken }
+export { loginUser, registerUser, generateAccessToken, logoutUser }

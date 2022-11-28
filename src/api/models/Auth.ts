@@ -27,4 +27,9 @@ const getMyToken = async (userId: string, token: string): Promise<any> => {
   return await DBConfig.execute(query)
 }
 
-export { register, saveMyToken, getMyToken }
+const deleteMyToken = async (userId: string, token: string): Promise<any> => {
+  const query = `DELETE FROM auth_tokens WHERE user_id = '${userId}' AND token = '${token}'`
+  return await DBConfig.execute(query)
+}
+
+export { register, saveMyToken, getMyToken, deleteMyToken }
