@@ -1,8 +1,8 @@
 interface User {
-  email: String
-  password: String
-  firstName?: String
-  lastName?: String
+  email: string
+  password: string
+  firstName?: string
+  lastName?: string
 }
 
 export default User
